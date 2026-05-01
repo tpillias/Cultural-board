@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e0e0e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Journal Culturel" />
+  <title>Journal Culturel</title>
+
+  <!-- PWA manifest inline -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e0e;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #f0ede8;
+      --muted: #888;
+      --dim: #555;
+      --gold: #C9A96E;
+      --blue: #7EB8C9;
+      --purple: #9B7EC9;
+      --green: #7EC99B;
+      --red: #C97E7E;
+      --yellow: #C9C37E;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Crimson Pro', Georgia, serif; -webkit-font-smoothing: antialiased; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    /* Layout */
+    #app { display: flex; flex-direction: column; height: 100vh; height: -webkit-fill-available; }
+
+    /* Header */
+    .header {
+      background: rgba(14,14,14,0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: calc(var(--safe-top) + 16px) 16px 14px;
+      position: sticky; top: 0; z-index: 50;
+      flex-shrink: 0;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+    .header h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+    .header-count { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .btn-add {
+      background: var(--gold); border: none; border-radius: 8px;
+      color: #111; padding: 9px 18px; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit; letter-spacing: 0.02em;
+      white-space: nowrap; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-add:active { opacity: 0.8; transform: scale(0.97); }
+
+    /* Category pills */
+    .pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none; margin-bottom: 10px; }
+    .pills::-webkit-scrollbar { display: none; }
+    .pill {
+      background: transparent; border: 1px solid var(--border); border-radius: 20px;
+      color: var(--muted); padding: 4px 12px; font-size: 11px; cursor: pointer;
+      white-space: nowrap; font-family: inherit; transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pill.active { color: var(--text); border-color: #666; background: rgba(240,237,232,0.08); }
+
+    /* Search row */
+    .search-row { display: flex; gap: 8px; }
+    .input-base {
+      background: #111; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); padding: 8px 12px; font-size: 14px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
+    }
+    .input-base:focus { border-color: var(--gold); }
+    .search-input { flex: 1; min-width: 0; }
+    .select-sort { cursor: pointer; font-size: 13px; }
+    select option { background: #1a1a1a; }
+
+    /* Content */
+    .content { flex: 1; overflow-y: auto; padding: 16px 16px calc(var(--safe-bottom) + 20px); }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 80px 0; color: var(--dim); }
+    .empty-icon { font-size: 44px; margin-bottom: 16px; }
+    .empty h2 { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--muted); margin-bottom: 8px; }
+    .empty p { font-size: 13px; }
+
+    /* Cards */
+    .cards { display: flex; flex-direction: column; gap: 10px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+      border-left-width: 3px;
+      animation: fadeIn 0.25s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+    .card-title-row { display: flex; align-items: flex-start; gap: 8px; flex: 1; }
+    .card-icon { font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+    .card-title { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text); }
+    .card-author { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .btn-icon {
+      background: transparent; border: none; cursor: pointer; color: var(--dim);
+      font-size: 14px; padding: 4px 6px; border-radius: 4px;
+      -webkit-tap-highlight-color: transparent; transition: color 0.15s;
+    }
+    .btn-icon:active { color: var(--gold); }
+
+    .card-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .stars { display: flex; gap: 2px; }
+    .star { color: #333; font-size: 13px; }
+    .star.on { color: var(--gold); }
+
+    .badge {
+      font-size: 10px; padding: 2px 8px; border-radius: 20px;
+      border: 1px solid transparent;
+    }
+    .badge-termine { background: #1e3a2a; color: var(--green); border-color: rgba(126,201,155,0.2); }
+    .badge-en_cours { background: #1e2a3a; color: var(--blue); border-color: rgba(126,184,201,0.2); }
+    .badge-abandonne { background: #2a1e1e; color: var(--red); border-color: rgba(201,126,126,0.2); }
+
+    .card-date { font-size: 11px; color: var(--dim); }
+    .card-note { font-size: 13px; color: #999; font-style: italic; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; line-height: 1.6; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 100; backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px 16px 0 0; padding: 20px 20px calc(var(--safe-bottom) + 20px);
+      width: 100%; max-height: 92vh; overflow-y: auto;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+
+    .modal-handle { width: 36px; height: 4px; background: #444; border-radius: 2px; margin: 0 auto 18px; }
+    .modal-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--text); margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+
+    .cat-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cat-btn {
+      background: transparent; border: 1px solid var(--border); border-radius: 20px;
+      color: var(--muted); padding: 5px 12px; font-size: 12px; cursor: pointer;
+      font-family: inherit; transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%; background: #111; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); padding: 10px 12px;
+      font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--gold); }
+    .form-textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; margin-bottom: 0; }
+
+    .star-row { display: flex; gap: 6px; }
+    .star-btn { background: none; border: none; font-size: 26px; cursor: pointer; color: #333; transition: color 0.15s; -webkit-tap-highlight-color: transparent; padding: 2px; }
+    .star-btn.on { color: var(--gold); }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-cancel {
+      flex: 1; background: transparent; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--muted); padding: 12px; font-size: 15px;
+      cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent;
+    }
+    .btn-save {
+      flex: 2; background: var(--gold); border: none; border-radius: 8px;
+      color: #111; padding: 12px; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent;
+    }
+    .btn-save:disabled { background: #333; color: #666; cursor: default; }
+    .btn-save:active:not(:disabled) { opacity: 0.85; }
+
+    /* Delete confirm */
+    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+    .confirm-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; max-width: 300px; width: 100%; text-align: center; }
+    .confirm-box p { font-size: 15px; color: var(--text); margin-bottom: 20px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 10px; }
+    .btn-no { flex: 1; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); padding: 11px; font-size: 15px; cursor: pointer; font-family: inherit; }
+    .btn-yes { flex: 1; background: var(--red); border: none; border-radius: 8px; color: #fff; padding: 11px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const CATEGORIES = [
+  { id: 'livre',   label: 'Livres',    icon: '📖', color: '#C9A96E' },
+  { id: 'film',    label: 'Films',     icon: '🎬', color: '#7EB8C9' },
+  { id: 'serie',   label: 'Séries',    icon: '📺', color: '#9B7EC9' },
+  { id: 'podcast', label: 'Podcasts',  icon: '🎙️', color: '#7EC99B' },
+  { id: 'musique', label: 'Musique',   icon: '🎵', color: '#C97E7E' },
+  { id: 'autre',   label: 'Autre',     icon: '✨', color: '#C9C37E' },
+];
+const STATUSES = [
+  { id: 'termine',   label: 'Terminé' },
+  { id: 'en_cours',  label: 'En cours' },
+  { id: 'abandonne', label: 'Abandonné' },
+];
+
+// State
+let state = {
+  entries: [],
+  filterCat: 'all',
+  search: '',
+  sortBy: 'date_desc',
+  showModal: false,
+  editEntry: null,
+  deleteId: null,
+  formRating: 0,
+};
+
+// Storage
+function loadEntries() {
+  try { return JSON.parse(localStorage.getItem('journal-culturel') || '[]'); } catch { return []; }
+}
+function saveEntries(entries) {
+  try { localStorage.setItem('journal-culturel', JSON.stringify(entries)); } catch {}
+}
+
+// Init
+state.entries = loadEntries();
+
+// Helpers
+function getCat(id) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[0]; }
+function fmt(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Render
+function render() {
+  document.getElementById('app').innerHTML = buildApp();
+  attachEvents();
+}
+
+function buildApp() {
+  const filtered = getFiltered();
+  return `
+    <div class="header">
+      <div class="header-top">
+        <div>
+          <h1>Journal Culturel</h1>
+          <div class="header-count">${state.entries.length} œuvre${state.entries.length !== 1 ? 's' : ''} répertoriée${state.entries.length !== 1 ? 's' : ''}</div>
+        </div>
+        <button class="btn-add" onclick="openModal()">+ Ajouter</button>
+      </div>
+      <div class="pills">
+        <button class="pill ${state.filterCat === 'all' ? 'active' : ''}" onclick="setFilter('all')">Tout · ${state.entries.length}</button>
+        ${CATEGORIES.map(cat => {
+          const count = state.entries.filter(e => e.category === cat.id).length;
+          const active = state.filterCat === cat.id;
+          return `<button class="pill ${active ? 'active' : ''}" style="${active ? `color:${cat.color};border-color:${cat.color};background:${cat.color}22` : ''}" onclick="setFilter('${cat.id}')">${cat.icon} ${cat.label} · ${count}</button>`;
+        }).join('')}
+      </div>
+      <div class="search-row">
+        <input class="input-base search-input" type="search" placeholder="Rechercher..." value="${esc(state.search)}" oninput="setSearch(this.value)" />
+        <select class="input-base select-sort" onchange="setSort(this.value)">
+          <option value="date_desc" ${state.sortBy === 'date_desc' ? 'selected' : ''}>Plus récent</option>
+          <option value="date_asc" ${state.sortBy === 'date_asc' ? 'selected' : ''}>Plus ancien</option>
+          <option value="rating" ${state.sortBy === 'rating' ? 'selected' : ''}>Meilleures notes</option>
+          <option value="title" ${state.sortBy === 'title' ? 'selected' : ''}>Titre A-Z</option>
+        </select>
+      </div>
+    </div>
+    <div class="content">
+      ${filtered.length === 0 ? buildEmpty() : `<div class="cards">${filtered.map(buildCard).join('')}</div>`}
+    </div>
+    ${state.showModal ? buildModal() : ''}
+    ${state.deleteId ? buildConfirm() : ''}
+  `;
+}
+
+function buildEmpty() {
+  const noData = state.entries.length === 0;
+  return `<div class="empty">
+    <div class="empty-icon">${noData ? '📚' : '🔍'}</div>
+    <h2>${noData ? 'Votre journal est vide' : 'Aucun résultat'}</h2>
+    <p>${noData ? 'Commencez par ajouter un livre, film ou podcast.' : 'Essayez d\'autres filtres ou termes.'}</p>
+  </div>`;
+}
+
+function buildCard(e) {
+  const cat = getCat(e.category);
+  const stars = [1,2,3,4,5].map(r => `<span class="star ${r <= e.rating ? 'on' : ''}">★</span>`).join('');
+  return `
+    <div class="card" style="border-left-color:${cat.color}">
+      <div class="card-top">
+        <div class="card-title-row">
+          <span class="card-icon">${cat.icon}</span>
+          <div>
+            <div class="card-title">${esc(e.title)}</div>
+            ${e.author ? `<div class="card-author">par ${esc(e.author)}${e.year ? ' · ' + esc(e.year) : ''}</div>` : ''}
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-icon" onclick="editEntry('${e.id}')" title="Modifier">✎</button>
+          <button class="btn-icon" onclick="confirmDelete('${e.id}')" title="Supprimer">✕</button>
+        </div>
+      </div>
+      <div class="card-meta">
+        <div class="stars">${stars}</div>
+        <span class="badge badge-${e.status}">${STATUSES.find(s => s.id === e.status)?.label || ''}</span>
+        ${e.date_added ? `<span class="card-date">${fmt(e.date_added)}</span>` : ''}
+      </div>
+      ${e.note ? `<div class="card-note">« ${esc(e.note)} »</div>` : ''}
+    </div>
+  `;
+}
+
+function buildModal() {
+  const f = state.editEntry || {};
+  const cat = f.category || 'livre';
+  const status = f.status || 'termine';
+  const rating = state.formRating;
+  const today = new Date().toISOString().split('T')[0];
+  const dateVal = f.date_added || today;
+
+  return `
+    <div class="modal-overlay" onclick="closeModalIfBg(event)">
+      <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title">${state.editEntry?.id ? 'Modifier l\'entrée' : 'Nouvelle entrée'}</div>
+
+        <div class="form-group">
+          <label class="form-label">Catégorie</label>
+          <div class="cat-grid">
+            ${CATEGORIES.map(c => `
+              <button class="cat-btn" id="cat-${c.id}" style="${cat === c.id ? `color:${c.color};border-color:${c.color};background:${c.color}22` : ''}" onclick="selectCat('${c.id}')">${c.icon} ${c.label}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Titre *</label>
+          <input class="form-input" id="f-title" type="text" placeholder="Titre de l'œuvre..." value="${esc(f.title || '')}" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Auteur / Créateur</label>
+            <input class="form-input" id="f-author" type="text" placeholder="Nom..." value="${esc(f.author || '')}" />
+          </div>
+          <div class="form-group" style="max-width:90px">
+            <label class="form-label">Année</label>
+            <input class="form-input" id="f-year" type="number" placeholder="2024" value="${esc(f.year || '')}" />
+          </div>
+        </div>
+
+        <div class="form-row" style="align-items:flex-end">
+          <div class="form-group">
+            <label class="form-label">Note</label>
+            <div class="star-row">
+              ${[1,2,3,4,5].map(r => `<button class="star-btn ${r <= rating ? 'on' : ''}" onclick="setRating(${r})">★</button>`).join('')}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Statut</label>
+            <select class="form-select" id="f-status">
+              ${STATUSES.map(s => `<option value="${s.id}" ${status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" id="f-date" type="date" value="${dateVal}" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Commentaire</label>
+          <textarea class="form-textarea" id="f-note" placeholder="Ce que j'ai aimé, ressenti, retenu...">${esc(f.note || '')}</textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+          <button class="btn-save" onclick="saveEntry()">${state.editEntry?.id ? 'Mettre à jour' : 'Ajouter'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildConfirm() {
+  return `
+    <div class="confirm-overlay">
+      <div class="confirm-box">
+        <p>Supprimer cette entrée ?<br>Cette action est irréversible.</p>
+        <div class="confirm-actions">
+          <button class="btn-no" onclick="cancelDelete()">Annuler</button>
+          <button class="btn-yes" onclick="doDelete()">Supprimer</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Actions
+function openModal() {
+  state.showModal = true;
+  state.editEntry = { category: 'livre', status: 'termine', date_added: new Date().toISOString().split('T')[0] };
+  state.formRating = 0;
+  render();
+}
+function closeModal() { state.showModal = false; state.editEntry = null; render(); }
+function closeModalIfBg(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
+
+function selectCat(id) {
+  if (state.editEntry) state.editEntry.category = id;
+  render();
+}
+function setRating(r) {
+  state.formRating = r === state.formRating ? 0 : r;
+  render();
+}
+
+function saveEntry() {
+  const title = document.getElementById('f-title')?.value?.trim();
+  if (!title) return;
+  const entry = {
+    id: state.editEntry?.id || Date.now().toString(),
+    title,
+    category: state.editEntry?.category || 'livre',
+    author: document.getElementById('f-author')?.value?.trim() || '',
+    year: document.getElementById('f-year')?.value?.trim() || '',
+    rating: state.formRating,
+    status: document.getElementById('f-status')?.value || 'termine',
+    date_added: document.getElementById('f-date')?.value || '',
+    note: document.getElementById('f-note')?.value?.trim() || '',
+  };
+  if (state.editEntry?.id && state.entries.find(e => e.id === state.editEntry.id)) {
+    state.entries = state.entries.map(e => e.id === entry.id ? entry : e);
+  } else {
+    state.entries = [entry, ...state.entries];
+  }
+  saveEntries(state.entries);
+  closeModal();
+}
+
+function editEntry(id) {
+  const e = state.entries.find(e => e.id === id);
+  if (!e) return;
+  state.editEntry = { ...e };
+  state.formRating = e.rating || 0;
+  state.showModal = true;
+  render();
+}
+
+function confirmDelete(id) { state.deleteId = id; render(); }
+function cancelDelete() { state.deleteId = null; render(); }
+function doDelete() {
+  state.entries = state.entries.filter(e => e.id !== state.deleteId);
+  saveEntries(state.entries);
+  state.deleteId = null;
+  render();
+}
+
+function setFilter(cat) { state.filterCat = cat; render(); }
+function setSearch(v) { state.search = v; render(); }
+function setSort(v) { state.sortBy = v; render(); }
+
+function getFiltered() {
+  return state.entries
+    .filter(e => state.filterCat === 'all' || e.category === state.filterCat)
+    .filter(e => {
+      const q = state.search.toLowerCase();
+      return !q || e.title.toLowerCase().includes(q) || (e.author || '').toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      if (state.sortBy === 'date_desc') return (b.date_added || '').localeCompare(a.date_added || '');
+      if (state.sortBy === 'date_asc')  return (a.date_added || '').localeCompare(b.date_added || '');
+      if (state.sortBy === 'rating')    return (b.rating || 0) - (a.rating || 0);
+      if (state.sortBy === 'title')     return a.title.localeCompare(b.title);
+      return 0;
+    });
+}
+
+function attachEvents() {
+  // prevent double-tap zoom on iOS
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('touchend', e => e.preventDefault());
+  });
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Start
+render();
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
